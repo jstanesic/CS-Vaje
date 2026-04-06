@@ -203,12 +203,57 @@ It would take longer than the universe exists.
 
 #### strong + fail2ban
 
-Fail2ban can not be added to existing container as there is nothing to run services.
+Fail2ban can not be added to existing container as there is nothing to run services. To solve this task I created a new rocky linux VM to run ssh daemon and fail2ban.
+
+On the VM I enabled password ssh and created a new user called stronguser with the password Str0ng!Pass#2026.
+
+ Install EPEL repository (required for fail2ban on Rocky Linux)
+sudo dnf install epel-release -y
+
+# Install fail2ban
+sudo dnf install fail2ban -y
+
+# Enable and start the service
+sudo systemctl enable --now fail2ban
+
+# Verify it's running
+sudo systemctl status fail2ban
+
+```
+[sshd]
+
+# To use more aggressive sshd modes set filter parameter "mode" in jail.local:
+# normal (default), ddos, extra or aggressive (combines all).
+# See "tests/files/logs/sshd" or "filter.d/sshd.conf" for usage example and details.
+#mode   = normal
+enabled = true
+port    = ssh
+maxretry = 3
+logpath = %(sshd_log)s
+backend = %(sshd_backend)s
+```
+
 ```
 bash
 apk add fail2ban
 cp /etc/fail2ban/jail.conf jail.local
 ```
+
+![failed2ban ready](image-10.png)
+
+
+I have expaned password list to 80 lines.
+
+hydra -l stronguser -P passwords.txt ssh://192.168.178.123:22
+
+In the first try since hydra used more threads, It actually completed the scan, but ended up blocked.
+
+![First hydra scan](image-11.png)
+
+When slowing down hydra, the scan does not complete at all:
+
+![Second hydra scan](image-12.png)
+
 
 ### 3. Data collection
 
@@ -216,7 +261,7 @@ cp /etc/fail2ban/jail.conf jail.local
 |--------|----------|------------|---------|------|----------|
 | weak | 123456 | none | True | instant | 20 |
 | strong | Str0ng!Pass#2026 | none | False | Time | Attempts |
-| strong | Str0ng!Pass#2026 | fail2ban | UNKNOWN | Time | Attempts |
+| strong | Str0ng!Pass#2026 | fail2ban | False | Time | Attempts |
 
 ---
 
